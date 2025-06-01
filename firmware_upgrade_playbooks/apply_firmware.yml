@@ -1,0 +1,62 @@
+---
+- name: Apply Firmware Updates from LXCA
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+    - name: Start firmware update job
+      pylxca_module:
+        login_user: "{{ lxca_user }}"
+        login_password: "{{ lxca_password }}"
+        auth_url: "{{ lxca_url }}"
+        lxca_action: "{{ lxca_action }}"
+        mode: "{{ mode }}"
+        uuid_list: "{{ uuid_list }}"
+        command_options: update_firmware_all
+      register: rslt_job
+
+    - name: Show job result
+      debug:
+        var: rslt_job
+
+    - name: Ensure firmware update job submitted successfully
+      assert:
+        that:
+          - "'Success' in rslt_job.msg"
+
+    - name: Poll for firmware update status
+      pylxca_module:
+        command_options: tasks
+        login_user: "{{ lxca_user }}"
+        login_password: "{{ lxca_password }}"
+        auth_url: "{{ lxca_url }}"
+        id: "{{ rslt_job.result.JobID }}"
+      register: result
+      until: result.result.TaskList[0].percentage == 100.0
+      retries: 40
+      delay: 15
+
+    - name: Show firmware update task
+      debug:
+        var: result.result.TaskList[0]
+
+    - name: Check if job completed successfully
+      assert:
+        that:
+          - "'Complete' in result.result.TaskList[0].status"
+          - "'CompleteWithErrors' not in result.result.TaskList[0].status"
+
+    - name: Send firmware update success notification email
+      mail:
+        host: smtp.yourcompany.com
+        port: 25
+        to: "{{ notification_email }}"
+        subject: "Firmware Update Successful"
+        body: |
+          Firmware update job (Job ID: {{ rslt_job.result.JobID }}) completed successfully on Lenovo servers.
+          Please verify the system status at your convenience.
+      when:
+        - "'Complete' in result.result.TaskList[0].status"
+        - "'CompleteWithErrors' not in result.result.TaskList[0].status"

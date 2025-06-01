@@ -1,0 +1,39 @@
+---
+- name: Check for Available Firmware Updates from LXCA
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+    - name: Get list of updatable components
+      pylxca_module:
+        login_user: "{{ lxca_user }}"
+        login_password: "{{ lxca_password }}"
+        auth_url: "{{ lxca_url }}"
+        command_options: update_firmware_query_comp
+      register: firmware_components
+
+    - name: Show components that can be updated
+      debug:
+        var: firmware_components
+
+    - name: Check if any updateable components found
+      set_fact:
+        updates_found: "{{ firmware_components.result | length > 0 }}"
+
+    - name: Fail if no updates found (optional)
+      fail:
+        msg: "No firmware updates available on LXCA."
+      when: not updates_found
+
+    - name: Send approval email if updates found
+      mail:
+        host: smtp.yourcompany.com
+        port: 25
+        to: "{{ approval_email }}"
+        subject: "Approval Needed: Lenovo Firmware Updates Found"
+        body: |
+          Firmware updates have been found on Lenovo servers.
+          Please approve to proceed with firmware patching.
+      when: updates_found
