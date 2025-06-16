@@ -32,6 +32,7 @@
     redfish_info:
       category: Update
       command: GetFirmwareInventory
+      baseuri: "{{ baseuri }}"
       timeout: 20
     register: result
 
