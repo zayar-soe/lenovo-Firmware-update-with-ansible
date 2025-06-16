@@ -33,6 +33,8 @@
       category: Update
       command: GetFirmwareInventory
       baseuri: "{{ baseuri }}"
+      username: "{{ ansible_user }}"
+      password: "{{ ansible_password }}"
       timeout: 20
     register: result
 
