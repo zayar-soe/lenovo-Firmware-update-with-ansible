@@ -1,23 +1,24 @@
 ---
 - hosts: lenovo-xcc
   connection: local
-  gather_facts: False
+  gather_facts: false
 
   tasks:
 
-  - name: get discover data from LXCA
-    pylxca_module:
-      login_user: "{{ lxca_user }}"
-      login_password: "{{ lxca_password }}"
-      auth_url: "{{ lxca_url }}"
-      command_options: discover
-      discover_ip: "{{ discover_ip }}"
-    register: rslt
-    tags:
-      discover
-    - name: Get original tasks
+    - name: Get discovery data from LXCA
+      pylxca_module:
+        login_user: "{{ lxca_user }}"
+        login_password: "{{ lxca_password }}"
+        auth_url: "{{ lxca_url }}"
+        command_options: discover
+        discover_ip: "{{ discover_ip }}"
+      register: rslt
+      tags:
+        - discover
+
+    - name: Get original tasks from LXCC (Redfish)
       command: python3 ../examples/get_all_tasks.py -i "{{ baseuri }}" -u "{{ username }}" -p "{{ password }}"
       register: result_task_org
       until: result_task_org.failed == false
       retries: 1
-      delay: 10  
+      delay: 10
